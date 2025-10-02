@@ -1,0 +1,22 @@
+# Sesión de WhatsApp (contiene credenciales)
+auth_info/
+
+# Variables de entorno
+.env
+
+# Node modules
+node_modules/
+
+# Logs
+*.log
+logs/
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
