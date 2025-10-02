@@ -194,7 +194,7 @@ async function enviarMensajeAARES(mensajeData) {
       {
         headers: {
           'Content-Type': 'application/json',
-          'X-Webhook-Secret': CONFIG.webhookSecret
+          'x-webhook-secret': CONFIG.webhookSecret
         },
         timeout: 10000 // 10 segundos
       }
