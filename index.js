@@ -39,6 +39,7 @@ const logger = P({
 
 // Socket de WhatsApp (global)
 let sock = null;
+let currentQR = null; // Almacenar el QR actual
 
 // ===============================================
 // FUNCIÓN PRINCIPAL: Conectar a WhatsApp
@@ -71,7 +72,10 @@ async function connectToWhatsApp() {
     const { connection, lastDisconnect, qr } = update;
     
     if (qr) {
-      logger.info('📱 Escanea este QR con WhatsApp:');
+      currentQR = qr; // Guardar el QR para exponerlo por HTTP
+      logger.info('📱 QR Code disponible en: http://localhost:' + CONFIG.port + '/qr');
+      logger.info('📱 String del QR:');
+      logger.info(qr);
       qrcode.generate(qr, { small: true });
     }
     
@@ -93,6 +97,7 @@ async function connectToWhatsApp() {
         process.exit(1);
       }
     } else if (connection === 'open') {
+      currentQR = null; // Limpiar QR cuando se conecta
       logger.info('✅ WhatsApp conectado exitosamente!');
       logger.info(`📱 Grupo técnico: ${CONFIG.grupoTecnicoId}`);
     } else if (connection === 'connecting') {
@@ -135,6 +140,27 @@ async function procesarMensaje(sock, msg) {
     return;
   }
   
+  // Extraer texto del mensaje
+  const textoCompleto = extraerTextoMensaje(msg);
+  
+  // ✅ NUEVO: Solo procesar mensajes que empiezan con /
+  if (!textoCompleto.startsWith('/')) {
+    logger.debug('⏭️ Mensaje ignorado (no empieza con /)');
+    return;
+  }
+  
+  // ✅ NUEVO: Parsear formato /CLIENTE | EQUIPO | descripción
+  const mensajeParsed = parsearMensaje(textoCompleto);
+  
+  if (!mensajeParsed.valido) {
+    logger.warn('⚠️ Formato inválido. Uso: /CLIENTE | EQUIPO | descripción');
+    // Opcional: enviar mensaje al grupo explicando el formato
+    await sock.sendMessage(msg.key.remoteJid, { 
+      text: '⚠️ Formato incorrecto.\n\n📋 Usar: `/CLIENTE | EQUIPO | descripción`\n\nEjemplo:\n`/LA MISION | RX DIGITAL | El equipo no enciende`' 
+    });
+    return;
+  }
+  
   // Extraer datos del mensaje
   const mensajeData = {
     id: msg.key.id,
@@ -143,19 +169,57 @@ async function procesarMensaje(sock, msg) {
       numero: msg.key.participant || msg.key.remoteJid,
       nombre: msg.pushName || 'Desconocido'
     },
-    texto: extraerTextoMensaje(msg),
+    // ✅ NUEVO: Datos estructurados
+    cliente: mensajeParsed.cliente,
+    equipo: mensajeParsed.equipo,
+    descripcion: mensajeParsed.descripcion,
+    textoOriginal: textoCompleto,
     tipo: detectarTipoMensaje(msg),
     timestamp: msg.messageTimestamp || Date.now()
   };
   
-  logger.info('📩 Mensaje recibido:', {
+  logger.info('📩 Ticket recibido:', {
     remitente: mensajeData.remitente.nombre,
-    texto: mensajeData.texto.substring(0, 50) + '...',
-    tipo: mensajeData.tipo
+    cliente: mensajeData.cliente,
+    equipo: mensajeData.equipo,
+    descripcion: mensajeData.descripcion.substring(0, 50) + '...'
   });
   
   // Enviar a ARES webhook
   await enviarMensajeAARES(mensajeData);
+}
+
+// ===============================================
+// PARSEAR MENSAJE: /CLIENTE | EQUIPO | descripción
+// ===============================================
+
+function parsearMensaje(texto) {
+  // Remover el prefijo /
+  const sinPrefijo = texto.substring(1).trim();
+  
+  // Separar por |
+  const partes = sinPrefijo.split('|').map(p => p.trim());
+  
+  // Validar que tenga las 3 partes
+  if (partes.length < 3) {
+    return { valido: false };
+  }
+  
+  const cliente = partes[0];
+  const equipo = partes[1];
+  const descripcion = partes.slice(2).join(' | ').trim(); // Por si la descripción tiene |
+  
+  // Validar que ninguna parte esté vacía
+  if (!cliente || !equipo || !descripcion) {
+    return { valido: false };
+  }
+  
+  return {
+    valido: true,
+    cliente,
+    equipo,
+    descripcion
+  };
 }
 
 // ===============================================
@@ -233,6 +297,22 @@ app.get('/health', (req, res) => {
     status: 'ok', 
     connected: sock?.user ? true : false,
     numero: sock?.user?.id || null
+  });
+});
+
+// Endpoint para obtener el QR code
+app.get('/qr', (req, res) => {
+  if (!currentQR) {
+    return res.status(404).json({ 
+      error: 'No hay QR disponible',
+      message: 'El servicio ya está conectado o aún no ha generado el QR'
+    });
+  }
+  
+  // Devolver el string del QR
+  res.json({ 
+    qr: currentQR,
+    message: 'Usa este string para generar el QR code en https://www.qr-code-generator.com/ o similar'
   });
 });
 
