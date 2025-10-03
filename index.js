@@ -16,7 +16,7 @@ import express from 'express';
 
 dotenv.config();
 
-// Configuración
+// ConfiguraciÃ³n
 const CONFIG = {
   aresApiUrl: process.env.ARES_API_URL || 'http://localhost:3000',
   webhookSecret: process.env.ARES_WEBHOOK_SECRET || '',
@@ -42,7 +42,7 @@ let sock = null;
 let currentQR = null; // Almacenar el QR actual
 
 // ===============================================
-// FUNCIÓN PRINCIPAL: Conectar a WhatsApp
+// FUNCIÃ“N PRINCIPAL: Conectar a WhatsApp
 // ===============================================
 
 async function connectToWhatsApp() {
@@ -73,8 +73,8 @@ async function connectToWhatsApp() {
     
     if (qr) {
       currentQR = qr; // Guardar el QR para exponerlo por HTTP
-      logger.info('📱 QR Code disponible en: http://localhost:' + CONFIG.port + '/qr');
-      logger.info('📱 String del QR:');
+      logger.info('ðŸ“± QR Code disponible en: http://localhost:' + CONFIG.port + '/qr');
+      logger.info('ðŸ“± String del QR:');
       logger.info(qr);
       qrcode.generate(qr, { small: true });
     }
@@ -84,24 +84,24 @@ async function connectToWhatsApp() {
         (lastDisconnect?.error instanceof Boom) && 
         lastDisconnect.error.output.statusCode !== DisconnectReason.loggedOut;
       
-      logger.warn('❌ Conexión cerrada', {
+      logger.warn('âŒ ConexiÃ³n cerrada', {
         reason: lastDisconnect?.error?.output?.statusCode,
         shouldReconnect
       });
       
       if (shouldReconnect) {
-        logger.info('🔄 Reconectando en 5 segundos...');
+        logger.info('ðŸ”„ Reconectando en 5 segundos...');
         setTimeout(() => connectToWhatsApp(), 5000);
       } else {
-        logger.error('🚫 Sesión cerrada. Elimina auth_info/ y vuelve a escanear QR');
+        logger.error('ðŸš« SesiÃ³n cerrada. Elimina auth_info/ y vuelve a escanear QR');
         process.exit(1);
       }
     } else if (connection === 'open') {
       currentQR = null; // Limpiar QR cuando se conecta
-      logger.info('✅ WhatsApp conectado exitosamente!');
-      logger.info(`📱 Grupo técnico: ${CONFIG.grupoTecnicoId}`);
+      logger.info('âœ… WhatsApp conectado exitosamente!');
+      logger.info(`ðŸ“± Grupo tÃ©cnico: ${CONFIG.grupoTecnicoId}`);
     } else if (connection === 'connecting') {
-      logger.info('🔄 Conectando a WhatsApp...');
+      logger.info('ðŸ”„ Conectando a WhatsApp...');
     }
   });
 
@@ -134,7 +134,7 @@ async function procesarMensaje(sock, msg) {
     return;
   }
   
-  // Solo procesar mensajes del grupo técnico
+  // Solo procesar mensajes del grupo tÃ©cnico
   if (msg.key.remoteJid !== CONFIG.grupoTecnicoId) {
     logger.debug(`Mensaje de chat no autorizado: ${msg.key.remoteJid}`);
     return;
@@ -143,20 +143,20 @@ async function procesarMensaje(sock, msg) {
   // Extraer texto del mensaje
   const textoCompleto = extraerTextoMensaje(msg);
   
-  // ✅ NUEVO: Solo procesar mensajes que empiezan con /
+  // âœ… NUEVO: Solo procesar mensajes que empiezan con /
   if (!textoCompleto.startsWith('/')) {
-    logger.debug('⏭️ Mensaje ignorado (no empieza con /)');
+    logger.debug('â­ï¸ Mensaje ignorado (no empieza con /)');
     return;
   }
   
-  // ✅ NUEVO: Parsear formato /CLIENTE | EQUIPO | descripción
+  // âœ… NUEVO: Parsear formato /CLIENTE | EQUIPO | descripciÃ³n
   const mensajeParsed = parsearMensaje(textoCompleto);
   
   if (!mensajeParsed.valido) {
-    logger.warn('⚠️ Formato inválido. Uso: /CLIENTE | EQUIPO | descripción');
+    logger.warn('âš ï¸ Formato invÃ¡lido. Uso: /CLIENTE | EQUIPO | descripciÃ³n');
     // Opcional: enviar mensaje al grupo explicando el formato
     await sock.sendMessage(msg.key.remoteJid, { 
-      text: '⚠️ Formato incorrecto.\n\n📋 Usar: `/CLIENTE | EQUIPO | descripción`\n\nEjemplo:\n`/LA MISION | RX DIGITAL | El equipo no enciende`' 
+      text: 'âš ï¸ Formato incorrecto.\n\nðŸ“‹ Usar: `/CLIENTE | EQUIPO | descripciÃ³n`\n\nEjemplo:\n`/LA MISION | RX DIGITAL | El equipo no enciende`' 
     });
     return;
   }
@@ -169,7 +169,7 @@ async function procesarMensaje(sock, msg) {
       numero: msg.key.participant || msg.key.remoteJid,
       nombre: msg.pushName || 'Desconocido'
     },
-    // ✅ NUEVO: Datos estructurados
+    // âœ… NUEVO: Datos estructurados
     cliente: mensajeParsed.cliente,
     equipo: mensajeParsed.equipo,
     descripcion: mensajeParsed.descripcion,
@@ -178,7 +178,7 @@ async function procesarMensaje(sock, msg) {
     timestamp: msg.messageTimestamp || Date.now()
   };
   
-  logger.info('📩 Ticket recibido:', {
+  logger.info('ðŸ“© Ticket recibido:', {
     remitente: mensajeData.remitente.nombre,
     cliente: mensajeData.cliente,
     equipo: mensajeData.equipo,
@@ -190,7 +190,7 @@ async function procesarMensaje(sock, msg) {
 }
 
 // ===============================================
-// PARSEAR MENSAJE: /CLIENTE | EQUIPO | descripción
+// PARSEAR MENSAJE: /CLIENTE | EQUIPO | descripciÃ³n
 // ===============================================
 
 function parsearMensaje(texto) {
@@ -207,9 +207,9 @@ function parsearMensaje(texto) {
   
   const cliente = partes[0];
   const equipo = partes[1];
-  const descripcion = partes.slice(2).join(' | ').trim(); // Por si la descripción tiene |
+  const descripcion = partes.slice(2).join(' | ').trim(); // Por si la descripciÃ³n tiene |
   
-  // Validar que ninguna parte esté vacía
+  // Validar que ninguna parte estÃ© vacÃ­a
   if (!cliente || !equipo || !descripcion) {
     return { valido: false };
   }
@@ -264,7 +264,7 @@ async function enviarMensajeAARES(mensajeData) {
       }
     );
 
-    logger.info('✅ Mensaje enviado a ARES:', {
+    logger.info('âœ… Mensaje enviado a ARES:', {
       status: response.status,
       ticketCreado: response.data?.ticketCreado || false,
       numeroReporte: response.data?.numeroReporte || 'N/A'
@@ -272,11 +272,11 @@ async function enviarMensajeAARES(mensajeData) {
 
   } catch (error) {
     if (error.code === 'ECONNREFUSED') {
-      logger.error('❌ ARES no está corriendo en', CONFIG.aresApiUrl);
+      logger.error('âŒ ARES no estÃ¡ corriendo en', CONFIG.aresApiUrl);
     } else if (error.response?.status === 401) {
-      logger.error('❌ Secret incorrecto. Verificar ARES_WEBHOOK_SECRET');
+      logger.error('âŒ Secret incorrecto. Verificar ARES_WEBHOOK_SECRET');
     } else {
-      logger.error('❌ Error enviando a ARES:', {
+      logger.error('âŒ Error enviando a ARES:', {
         message: error.message,
         status: error.response?.status
       });
@@ -305,7 +305,7 @@ app.get('/qr', (req, res) => {
   if (!currentQR) {
     return res.status(404).json({ 
       error: 'No hay QR disponible',
-      message: 'El servicio ya está conectado o aún no ha generado el QR'
+      message: 'El servicio ya estÃ¡ conectado o aÃºn no ha generado el QR'
     });
   }
   
@@ -331,7 +331,7 @@ app.post('/send-message', async (req, res) => {
     
     await sock.sendMessage(chatId, { text: message });
     
-    logger.info('✅ Mensaje enviado al grupo:', {
+    logger.info('âœ… Mensaje enviado al grupo:', {
       preview: message.substring(0, 50)
     });
     
@@ -344,21 +344,21 @@ app.post('/send-message', async (req, res) => {
 
 // Iniciar servidor HTTP
 app.listen(CONFIG.port, () => {
-  logger.info(`🚀 Servidor HTTP escuchando en puerto ${CONFIG.port}`);
-  logger.info(`📍 Health check: http://localhost:${CONFIG.port}/health`);
+  logger.info(`ðŸš€ Servidor HTTP escuchando en puerto ${CONFIG.port}`);
+  logger.info(`ðŸ“ Health check: http://localhost:${CONFIG.port}/health`);
 });
 
 // ===============================================
-// INICIAR CONEXIÓN
+// INICIAR CONEXIÃ“N
 // ===============================================
 
-// Validar configuración
+// Validar configuraciÃ³n
 if (!CONFIG.webhookSecret) {
-  logger.error('⚠️ ARES_WEBHOOK_SECRET no configurado en .env');
+  logger.error('âš ï¸ ARES_WEBHOOK_SECRET no configurado en .env');
 }
 
 if (!CONFIG.grupoTecnicoId) {
-  logger.warn('⚠️ GRUPO_TECNICO_ID no configurado. Usa el checklist para obtenerlo.');
+  logger.warn('âš ï¸ GRUPO_TECNICO_ID no configurado. Usa el checklist para obtenerlo.');
 }
 
 // Conectar
@@ -367,9 +367,9 @@ connectToWhatsApp().catch(err => {
   process.exit(1);
 });
 
-// Manejo de señales
+// Manejo de seÃ±ales
 process.on('SIGINT', async () => {
-  logger.info('🛑 Cerrando conexión...');
+  logger.info('ðŸ›‘ Cerrando conexiÃ³n...');
   if (sock) {
     await sock.logout();
   }
